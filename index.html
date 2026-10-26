@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สถิติและข้อมูล 3D (ข้อมูลปฐมภูมิ vs ข้อมูลทุติยภูมิ) - ม.5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--pri:#0284c7;--sec:#9333ea;--pop:#0d9488;--ink:#1e293b;--mute:#64748b;--glass:rgba(255,255,255,.66);--line:rgba(255,255,255,.8)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Sarabun',sans-serif;color:var(--ink);background:radial-gradient(1200px 700px at 10% 0%,#dbeafe 0%,transparent 60%),radial-gradient(1000px 700px at 100% 100%,#f3e8ff 0%,transparent 55%),#eef3fb;overflow-x:hidden}
+h1,h2,h3,.kn{font-family:'Kanit','Sarabun',sans-serif}
+#app{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(360px,.85fr);gap:16px;padding:16px;height:100vh}
+#stage{position:relative;border-radius:28px;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(224,236,255,.55));border:1px solid var(--line);box-shadow:0 20px 60px rgba(30,64,175,.14)}
+#cv{position:absolute;inset:0}
+#cv canvas{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+#cv canvas:active{cursor:grabbing}
+.hud{position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;z-index:5}
+.chip{pointer-events:auto;background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);border-radius:18px;padding:10px 16px;box-shadow:0 8px 24px rgba(15,23,42,.08)}
+.chip h1{font-size:17px;font-weight:600;line-height:1.25}
+.chip p{font-size:12px;color:var(--mute)}
+.tools{display:flex;gap:8px;align-items:flex-start}
+.btn{pointer-events:auto;cursor:pointer;border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:var(--ink);font:500 13px 'Sarabun',sans-serif;padding:9px 14px;border-radius:14px;transition:all .2s;box-shadow:0 6px 18px rgba(15,23,42,.08)}
+.btn:hover{transform:translateY(-1px);background:#fff}
+.btn.on{background:var(--pri);color:#fff}
+.hint{position:absolute;left:16px;bottom:16px;z-index:4;font-size:12px;color:var(--mute);background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--line);padding:7px 12px;border-radius:12px;transition:opacity .3s}
+.hs{position:absolute;left:0;top:0;z-index:3;display:flex;align-items:center;gap:8px;border:0;background:#fff;padding:6px 12px 6px 8px;border-radius:999px;font:500 12.5px 'Sarabun',sans-serif;color:var(--ink);cursor:pointer;box-shadow:0 8px 22px rgba(15,23,42,.18);will-change:transform;transition:opacity .25s,background .2s}
+.hs:hover{background:#f8fafc}
+.hs i{position:relative;width:14px;height:14px;border-radius:50%;background:var(--c)}
+.hs i::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid var(--c);animation:ping 1.8s ease-out infinite}
+@keyframes ping{0%{transform:scale(.6);opacity:.9}100%{transform:scale(1.8);opacity:0}}
+#card{position:absolute;left:16px;bottom:16px;z-index:6;width:min(380px,calc(100% - 32px));background:rgba(255,255,255,.88);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1px solid #fff;border-radius:22px;padding:18px 18px 16px;box-shadow:0 24px 60px rgba(15,23,42,.22);opacity:0;transform:translateY(24px) scale(.96);pointer-events:none;transition:opacity .35s ease,transform .45s cubic-bezier(.2,.9,.3,1.2)}
+#card.show{opacity:1;transform:none;pointer-events:auto}
+#card::before{content:"";position:absolute;left:18px;right:18px;top:0;height:4px;border-radius:0 0 6px 6px;background:var(--c)}
+#card .tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;color:#fff;background:var(--c);padding:3px 10px;border-radius:999px}
+#card h3{font-size:19px;margin:8px 0 6px}
+#card p{font-size:13.5px;line-height:1.6;color:#334155}
+#card ul{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:6px}
+#card li{font-size:13px;line-height:1.5;padding:7px 10px;background:rgba(241,245,249,.9);border-radius:10px;border-left:3px solid var(--c);animation:rise .5s both}
+#card li:nth-child(2){animation-delay:.08s}#card li:nth-child(3){animation-delay:.16s}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#card .x{position:absolute;right:12px;top:12px;border:0;background:#f1f5f9;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:16px;line-height:1;color:var(--mute)}
+#panel{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:28px;box-shadow:0 20px 60px rgba(30,64,175,.12);display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.ph{padding:20px 22px 12px}
+.ph .eyebrow{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--pri);text-transform:uppercase}
+.ph h2{font-size:21px;font-weight:600;margin-top:2px;line-height:1.3}
+.tabs{display:flex;gap:6px;margin:0 22px;padding:5px;background:rgba(226,232,240,.6);border-radius:16px}
+.tab{flex:1;border:0;background:transparent;padding:9px 6px;border-radius:12px;font:500 14px 'Kanit',sans-serif;color:var(--mute);cursor:pointer;transition:all .25s}
+.tab.on{background:#fff;color:var(--ink);box-shadow:0 4px 12px rgba(15,23,42,.1)}
+.body{flex:1;overflow-y:auto;padding:16px 22px 22px;min-height:0}
+.pane{display:none}
+.pane.on{display:block;animation:fade .45s ease}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lc{border-radius:20px;padding:16px;margin-bottom:12px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 6px 18px rgba(15,23,42,.05);position:relative;overflow:hidden}
+.lc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c)}
+.lc h3{font-size:16.5px;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.lc h3 b{width:11px;height:11px;border-radius:50%;background:var(--c)}
+.lc p,.lc li{font-size:13.5px;line-height:1.65;color:#334155}
+.lc ul{list-style:none;display:grid;gap:5px;margin:6px 0 12px}
+.lc li strong{color:var(--c)}
+.go{border:0;cursor:pointer;background:var(--c);color:#fff;font:500 13px 'Sarabun',sans-serif;padding:8px 14px;border-radius:12px;transition:transform .2s,box-shadow .2s}
+.go:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(15,23,42,.2)}
+.sl{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:14px 16px;margin-bottom:12px}
+.sl label{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;font-weight:600}
+.sl output{font:600 17px 'Kanit',sans-serif;color:var(--c)}
+.sl small{display:block;color:var(--mute);font-size:12px;margin-top:4px}
+input[type=range]{width:100%;margin-top:10px;height:6px;border-radius:6px;appearance:none;-webkit-appearance:none;background:linear-gradient(90deg,var(--c) var(--p,50%),#e2e8f0 var(--p,50%));outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:4px solid var(--c);box-shadow:0 3px 10px rgba(0,0,0,.2);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:4px solid var(--c);cursor:pointer}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.cc{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:12px 14px;border-top:4px solid var(--c)}
+.cc h4{font:600 13px 'Kanit',sans-serif;color:var(--c);margin-bottom:8px}
+.row{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;border-bottom:1px dashed #e2e8f0}
+.row span:last-child{font-weight:700}
+.meter{height:8px;border-radius:8px;background:#e2e8f0;margin-top:10px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--c);border-radius:8px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.cc .cap{font-size:11.5px;color:var(--mute);margin-top:4px}
+.ins{border-radius:18px;padding:14px 16px;background:linear-gradient(135deg,#e0f2fe,#f3e8ff);font-size:13.5px;line-height:1.65;border:1px solid #fff}
+.q{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:14px 16px;margin-bottom:12px}
+.q p{font-size:14px;line-height:1.6;font-weight:600;margin-bottom:10px}
+.opt{display:block;width:100%;text-align:left;border:1.5px solid #e2e8f0;background:#f8fafc;padding:9px 12px;border-radius:12px;margin-bottom:7px;font:400 13.5px 'Sarabun',sans-serif;line-height:1.5;color:var(--ink);cursor:pointer;transition:all .2s}
+.opt:hover{border-color:#93c5fd;background:#eff6ff}
+.opt.sel{border-color:var(--pri);background:#e0f2fe}
+.opt.ok{border-color:#16a34a;background:#dcfce7}
+.opt.bad{border-color:#dc2626;background:#fee2e2}
+.ex{display:none;font-size:12.5px;line-height:1.6;color:#334155;background:#f1f5f9;border-radius:10px;padding:9px 12px;margin-top:4px}
+.ex.on{display:block;animation:fade .4s}
+.score{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:4px}
+.score div{font:600 15px 'Kanit',sans-serif}
+@media (max-width:980px){
+body{overflow:auto}
+#app{display:flex;flex-direction:column;height:auto;padding:12px}
+#stage{height:62vh;min-height:420px}
+#panel{min-height:0}
+.body{overflow:visible}
+.hud{flex-direction:column}
+}
+@media (max-width:560px){.cmp{grid-template-columns:1fr}.hint{display:none}}
+</style>
+</head>
+<body>
+<div id="app">
+<section id="stage">
+<div id="cv"></div>
+<div class="hud">
+<div class="chip"><h1>ห้องปฏิบัติการข้อมูล 3 มิติ</h1><p>ข้อมูลปฐมภูมิ vs ข้อมูลทุติยภูมิ · คณิตศาสตร์ ม.5</p></div>
+<div class="tools"><button class="btn" id="bHome">รีเซ็ตมุมมอง</button><button class="btn" id="bRot">หมุนอัตโนมัติ</button></div>
+</div>
+<div class="hint" id="hint">คลิก-ลากเพื่อหมุน · คลิกขวา/สองนิ้วเพื่อเลื่อน · ลูกกลิ้งเพื่อซูม · แตะจุดเรืองแสงเพื่ออ่านข้อมูล</div>
+<div id="card"><button class="x" id="cx" aria-label="ปิด">×</button><span class="tag" id="ct"></span><h3 id="ch"></h3><p id="cp"></p><ul id="cl"></ul></div>
+</section>
+<aside id="panel">
+<div class="ph"><div class="eyebrow">Interactive 3D Lesson</div><h2>จำแนกข้อมูลตามแหล่งที่มา</h2></div>
+<div class="tabs">
+<button class="tab on" data-t="learn">บทเรียน</button>
+<button class="tab" data-t="lab">ทดลอง</button>
+<button class="tab" data-t="quiz">แบบทดสอบ</button>
+</div>
+<div class="body">
+<div class="pane on" id="learn">
+<div class="lc" style="--c:var(--pop)"><h3><b></b>ประชากรและกลุ่มตัวอย่าง</h3><p>ลูกบอลในโดมแทนหน่วยข้อมูลของประชากรที่เราสนใจ ลูกบอลสีฟ้าคือกลุ่มตัวอย่างที่ผู้วิจัยเลือกไปเก็บข้อมูล</p><div style="height:10px"></div><button class="go" data-view="pop">ดูประชากรใน 3D</button></div>
+<div class="lc" style="--c:var(--pri)"><h3><b></b>ข้อมูลปฐมภูมิ (Primary Data)</h3><p>ผู้ใช้เก็บรวบรวมข้อมูลเองโดยตรงจากแหล่งกำเนิด</p><ul><li><strong>วิธีเก็บ:</strong> ลงพื้นที่สอบถาม สัมภาษณ์ แจกแบบสอบถาม ทดลองในห้องแล็บ สังเกตการณ์</li><li><strong>ข้อดี:</strong> ตรงเป้าหมายงานวิจัย ทันสมัย ตรงวัตถุประสงค์ที่สุด</li><li><strong>ข้อจำกัด:</strong> เสียเวลา แรงงาน และงบประมาณสูงเมื่อกลุ่มตัวอย่างมีขนาดใหญ่</li></ul><button class="go" data-view="pri">ดูผู้วิจัยใน 3D</button></div>
+<div class="lc" style="--c:var(--sec)"><h3><b></b>ข้อมูลทุติยภูมิ (Secondary Data)</h3><p>นำข้อมูลที่ผู้อื่นรวบรวมไว้แล้วมาใช้งานต่อ</p><ul><li><strong>แหล่งข้อมูล:</strong> รายงานรัฐบาล สำนักงานสถิติแห่งชาติ บทความวิชาการ ทะเบียนราษฎร์ สถิติย้อนหลัง</li><li><strong>ข้อดี:</strong> ประหยัดเวลาและค่าใช้จ่าย ได้ฐานข้อมูลขนาดใหญ่ที่เก็บมายาวนาน</li><li><strong>ข้อจำกัด:</strong> อาจไม่ตรงเป้าหมาย 100% อาจไม่ทันสมัย และอาจขาดความน่าเชื่อถือหากแหล่งที่มาไม่ดี</li></ul><button class="go" data-view="sec">ดูฐานข้อมูลใน 3D</button></div>
+</div>
+<div class="pane" id="lab">
+<div class="sl" style="--c:var(--pri)"><label for="rn">กลุ่มตัวอย่างที่เก็บเอง (ปฐมภูมิ)<output id="on">100 คน</output></label><input type="range" id="rn" min="10" max="300" step="5" value="100"><small>เพิ่มจำนวนคนเพื่อลดความคลาดเคลื่อน แต่ใช้เวลาและงบประมาณมากขึ้น</small></div>
+<div class="sl" style="--c:var(--sec)"><label for="rq">คุณภาพฐานข้อมูลทุติยภูมิ<output id="oq">70%</output></label><input type="range" id="rq" min="10" max="100" step="5" value="70"><small>ระดับความน่าเชื่อถือและความสมบูรณ์ของแหล่งข้อมูลสำรอง</small></div>
+<div class="cmp">
+<div class="cc" style="--c:var(--pri)"><h4>ปฐมภูมิ</h4><div class="row"><span>เวลา</span><span id="pt"></span></div><div class="row"><span>ค่าใช้จ่าย</span><span id="pc"></span></div><div class="row"><span>ความคลาดเคลื่อน</span><span id="pe"></span></div><div class="meter"><i id="pm"></i></div><div class="cap">คะแนนความเหมาะสม <b id="ps"></b>/100</div></div>
+<div class="cc" style="--c:var(--sec)"><h4>ทุติยภูมิ</h4><div class="row"><span>เวลา</span><span id="st"></span></div><div class="row"><span>ค่าใช้จ่าย</span><span id="sc"></span></div><div class="row"><span>ความน่าเชื่อถือ</span><span id="se"></span></div><div class="meter"><i id="sm"></i></div><div class="cap">คะแนนความเหมาะสม <b id="ss"></b>/100</div></div>
+</div>
+<div class="ins" id="ins"></div>
+<div style="height:12px"></div>
+<button class="go" style="--c:var(--pri)" data-view="ana">ดูแท่งผลเปรียบเทียบใน 3D</button>
+</div>
+<div class="pane" id="quiz">
+<div id="qs"></div>
+<div class="score"><div id="sc2">คะแนนที่ได้: 0 / 3</div><div><button class="go" style="--c:var(--pri)" id="qc">ตรวจคำตอบ</button> <button class="go" style="--c:#64748b" id="qr">ทำใหม่</button></div></div>
+</div>
+</div>
+</aside>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const V3=THREE.Vector3;
+const INFO={
+pop:{c:'#0d9488',tag:'แหล่งกำเนิดข้อมูล',h:'ประชากร (Population)',p:'กลุ่มทั้งหมดที่เราสนใจศึกษา ลูกบอลแต่ละลูกแทนหนึ่งหน่วยข้อมูล ข้อมูลปฐมภูมิเก็บจากแหล่งนี้โดยตรง',l:['ลูกบอลสีฟ้าที่ขยายใหญ่คือกลุ่มตัวอย่าง','ยิ่งกลุ่มตัวอย่างมาก ยิ่งแทนประชากรได้ดี','ลองเลื่อนสไลเดอร์ในแท็บ “ทดลอง” เพื่อดูการเปลี่ยนแปลง']},
+pri:{c:'#0284c7',tag:'ข้อมูลปฐมภูมิ',h:'ผู้วิจัยลงพื้นที่เก็บข้อมูลเอง',p:'ผู้วิจัยเดินทางไปเก็บข้อมูลจากกลุ่มตัวอย่างโดยตรง เส้นแสงสีฟ้าคือการสอบถามหรือสัมภาษณ์',l:['วิธีเก็บ: แบบสอบถาม สัมภาษณ์ ทดลอง สังเกตการณ์','ข้อดี: ตรงเป้าหมายและทันสมัย','ข้อจำกัด: เสียเวลา แรงงาน และงบประมาณสูง']},
+sec:{c:'#9333ea',tag:'ข้อมูลทุติยภูมิ',h:'ฐานข้อมูลที่ผู้อื่นรวบรวมไว้แล้ว',p:'ชั้นเซิร์ฟเวอร์แต่ละชั้นแทนแหล่งข้อมูล เช่น สำนักงานสถิติแห่งชาติ รายงานภาครัฐ และบทความวิชาการ',l:['จำนวนชั้นที่สว่างแปรผันตามคุณภาพของแหล่งข้อมูล','ข้อดี: ประหยัดเวลาและค่าใช้จ่าย ได้ข้อมูลปริมาณมาก','ข้อควรระวัง: ต้องตรวจสอบความถูกต้อง ความทันสมัย และความน่าเชื่อถือ']},
+ana:{c:'#f59e0b',tag:'การวิเคราะห์ผล',h:'โต๊ะวิเคราะห์ผลเปรียบเทียบ',p:'แท่งสีฟ้าแทนคะแนนความเหมาะสมของข้อมูลปฐมภูมิ แท่งสีม่วงแทนข้อมูลทุติยภูมิ ความสูงเปลี่ยนตามสไลเดอร์',l:['ปรับกลุ่มตัวอย่างและคุณภาพฐานข้อมูลเพื่อดูแท่งขยับ','เลือกชนิดข้อมูลให้เหมาะกับโจทย์ เวลา และงบประมาณ','โจทย์ที่ต้องการข้อมูลย้อนหลังหลายสิบปีมักเหมาะกับทุติยภูมิ']}
+};
+const VIEWS={home:{p:[0,10,19.5],t:[0,1,1.2]},pop:{p:[0,5.5,5],t:[0,1.6,-3]},pri:{p:[-12.5,5.5,11],t:[-7,1.6,3]},sec:{p:[12.5,6.5,11],t:[7,2.2,3]},ana:{p:[0,4.6,14],t:[0,1.4,6.5]}};
+const HSP={pop:{pos:[0,3.6,-3],label:'ประชากร'},pri:{pos:[-7,3.7,3],label:'ข้อมูลปฐมภูมิ'},sec:{pos:[7,5,3],label:'ข้อมูลทุติยภูมิ'},ana:{pos:[0,4,6.5],label:'ผลเปรียบเทียบ'}};
+const host=$('#cv'),stage=$('#stage');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+host.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+scene.fog=new THREE.Fog(0xe6eefb,32,60);
+const camera=new THREE.PerspectiveCamera(45,1,.1,100);
+camera.position.set(...VIEWS.home.p);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=5;controls.maxDistance=32;controls.maxPolarAngle=Math.PI/2.05;controls.autoRotateSpeed=.8;
+controls.target.set(...VIEWS.home.t);
+scene.add(new THREE.HemisphereLight(0xffffff,0xb7c7e6,.75));
+const sun=new THREE.DirectionalLight(0xffffff,.95);
+sun.position.set(9,15,8);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0004;sun.shadow.radius=4;
+Object.assign(sun.shadow.camera,{left:-16,right:16,top:16,bottom:-16,near:1,far:45});
+scene.add(sun);
+const rim=new THREE.PointLight(0xa78bfa,.6,40);rim.position.set(-10,8,-8);scene.add(rim);
+const std=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.45,metalness:.1},o));
+function mk(g,m,x,y,z,parent){const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;(parent||scene).add(o);return o}
+const plat=mk(new THREE.CylinderGeometry(14,14.4,.5,96),std(0xf8fbff,{roughness:.8}),0,-.25,1.5);plat.castShadow=false;
+const rimRing=mk(new THREE.TorusGeometry(14.2,.07,12,128),std(0x93c5fd,{emissive:0x60a5fa,emissiveIntensity:.5}),0,0,1.5);rimRing.rotation.x=Math.PI/2;rimRing.castShadow=false;
+const floor=new THREE.Mesh(new THREE.CircleGeometry(40,64),new THREE.ShadowMaterial({opacity:.12}));floor.rotation.x=-Math.PI/2;floor.position.y=-.52;floor.receiveShadow=true;scene.add(floor);
+const popG=new THREE.Group();popG.position.set(0,0,-3);popG.userData.key='pop';scene.add(popG);
+mk(new THREE.CylinderGeometry(3.3,3.5,.3,64),std(0x0d9488,{roughness:.5}),0,.15,0,popG);
+const dome=new THREE.Mesh(new THREE.SphereGeometry(3.1,48,24,0,Math.PI*2,0,Math.PI/2),new THREE.MeshPhysicalMaterial({color:0x99f6e4,transparent:true,opacity:.16,roughness:.05,metalness:0,side:THREE.DoubleSide,depthWrite:false}));
+dome.position.y=.3;popG.add(dome);
+const NP=300;
+const popMesh=new THREE.InstancedMesh(new THREE.SphereGeometry(.14,14,10),std(0xffffff,{roughness:.35}),NP);
+popMesh.castShadow=true;popG.add(popMesh);
+const popPos=[];
+while(popPos.length<NP){const x=Math.random()*2-1,y=Math.random(),z=Math.random()*2-1;if(x*x+y*y+z*z<=1&&y>.03)popPos.push(new V3(x*2.8,y*2.7+.55,z*2.8))}
+const dum=new THREE.Object3D(),cBase=new THREE.Color(0xb9c6da),cSamp=new THREE.Color(0x0ea5e9);
+function setSample(n){for(let i=0;i<NP;i++){dum.position.copy(popPos[i]);dum.scale.setScalar(i<n?1.6:1);dum.updateMatrix();popMesh.setMatrixAt(i,dum.matrix);popMesh.setColorAt(i,i<n?cSamp:cBase)}popMesh.instanceMatrix.needsUpdate=true;popMesh.instanceColor.needsUpdate=true}
+const priG=new THREE.Group();priG.position.set(-7,0,3);priG.userData.key='pri';scene.add(priG);
+const priRing=mk(new THREE.TorusGeometry(1.5,.12,16,64),std(0x0284c7,{emissive:0x0284c7,emissiveIntensity:.4}),0,.12,0,priG);priRing.rotation.x=Math.PI/2;
+mk(new THREE.CylinderGeometry(1.4,1.4,.15,48),std(0xe0f2fe),0,.07,0,priG);
+mk(new THREE.CylinderGeometry(.45,.6,1.5,24),std(0x0284c7),0,.9,0,priG);
+mk(new THREE.SphereGeometry(.4,32,24),std(0xfde0c8,{roughness:.6}),0,2.05,0,priG);
+mk(new THREE.SphereGeometry(.41,32,16,0,Math.PI*2,0,Math.PI/2.2),std(0x1e293b),0,2.1,-.02,priG);
+const clip=mk(new THREE.BoxGeometry(.8,1,.08),std(0xffffff),.6,1.35,.45,priG);clip.rotation.y=-.5;
+mk(new THREE.BoxGeometry(.6,.1,.1),std(0x0284c7),0,.5,.06,clip);
+const secG=new THREE.Group();secG.position.set(7,0,3);secG.userData.key='sec';scene.add(secG);
+mk(new THREE.CylinderGeometry(1.7,1.7,.2,48),std(0xf3e8ff),0,.1,0,secG);
+const rings=[],NS=6;
+for(let i=0;i<NS;i++){mk(new THREE.CylinderGeometry(1.1,1.1,.5,40),std(0x334155,{roughness:.35,metalness:.4}),0,.5+i*.62,0,secG);const m=std(0x475569,{emissive:0xa855f7,emissiveIntensity:0});const r=mk(new THREE.CylinderGeometry(1.13,1.13,.09,40),m,0,.5+i*.62,0,secG);r.castShadow=false;rings.push(m)}
+const gem=mk(new THREE.OctahedronGeometry(.5),std(0xa855f7,{emissive:0xa855f7,emissiveIntensity:.6,roughness:.2}),0,4.7,0,secG);
+const anaG=new THREE.Group();anaG.position.set(0,0,6.5);anaG.userData.key='ana';scene.add(anaG);
+mk(new THREE.BoxGeometry(4.2,.9,1.7),std(0xffffff,{roughness:.6}),0,.45,0,anaG);
+mk(new THREE.BoxGeometry(3.4,1.7,.14),std(0x1e293b,{roughness:.3}),0,2.1,-.7,anaG);
+mk(new THREE.BoxGeometry(3.2,1.5,.04),std(0x0f172a,{emissive:0x1e3a8a,emissiveIntensity:.5}),0,2.1,-.61,anaG);
+const barGeo=new THREE.BoxGeometry(.7,1,.7);
+const barP=mk(barGeo,std(0x0284c7,{emissive:0x0284c7,emissiveIntensity:.25}),-.9,1.2,.1,anaG);
+const barS=mk(barGeo,std(0x9333ea,{emissive:0x9333ea,emissiveIntensity:.25}),.9,1.2,.1,anaG);
+let tgtP=1,tgtS=1;
+const R=new V3(-6.4,2.2,3.5),MAXB=14;
+const bpos=new Float32Array(MAXB*6);
+for(let i=0;i<MAXB;i++){const s=popPos[i].clone().add(popG.position);bpos.set([s.x,s.y,s.z,R.x,R.y,R.z],i*6)}
+const bgeo=new THREE.BufferGeometry();bgeo.setAttribute('position',new THREE.BufferAttribute(bpos,3));
+const beams=new THREE.LineSegments(bgeo,new THREE.LineBasicMaterial({color:0x38bdf8,transparent:true,opacity:.55}));scene.add(beams);
+const pk=[];
+for(let i=0;i<MAXB;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(.13,12,10),new THREE.MeshBasicMaterial({color:0x7dd3fc}));scene.add(m);pk.push(m)}
+const cvS=new THREE.QuadraticBezierCurve3(new V3(7,4.4,3),new V3(3.8,7,5.5),new V3(1,2.9,6.2));
+const cvP=new THREE.QuadraticBezierCurve3(new V3(-7,3.6,3),new V3(-3.8,6.3,5.5),new V3(-1,2.9,6.2));
+scene.add(new THREE.Mesh(new THREE.TubeGeometry(cvS,40,.05,8),new THREE.MeshBasicMaterial({color:0xc084fc,transparent:true,opacity:.4})));
+scene.add(new THREE.Mesh(new THREE.TubeGeometry(cvP,40,.05,8),new THREE.MeshBasicMaterial({color:0x7dd3fc,transparent:true,opacity:.4})));
+const sk=[];
+for(let i=0;i<MAXB;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.2,.2,.2),new THREE.MeshBasicMaterial({color:0xd8b4fe}));scene.add(m);sk.push(m)}
+let nB=100,nQ=70,cntB=14,cntS=10;
+const hsLayer=document.createElement('div');stage.appendChild(hsLayer);
+const hsEls={};
+Object.keys(HSP).forEach(k=>{const b=document.createElement('button');b.className='hs';b.style.setProperty('--c',INFO[k].c);b.innerHTML='<i></i>'+HSP[k].label;b.onclick=()=>focus(k);stage.appendChild(b);hsEls[k]=b;HSP[k].v=new V3(...HSP[k].pos)});
+let tw=null;
+function focus(k){tw={p:new V3(...VIEWS[k].p),t:new V3(...VIEWS[k].t)};if(k!=='home')showCard(k);else hideCard()}
+controls.addEventListener('start',()=>{tw=null;$('#hint').style.opacity=.35});
+const card=$('#card');
+function showCard(k){const d=INFO[k];card.classList.remove('show');void card.offsetWidth;card.style.setProperty('--c',d.c);$('#ct').textContent=d.tag;$('#ch').textContent=d.h;$('#cp').textContent=d.p;$('#cl').innerHTML=d.l.map(t=>'<li>'+t+'</li>').join('');card.classList.add('show')}
+function hideCard(){card.classList.remove('show')}
+$('#cx').onclick=hideCard;
+$('#bHome').onclick=()=>focus('home');
+$('#bRot').onclick=e=>{controls.autoRotate=!controls.autoRotate;e.currentTarget.classList.toggle('on',controls.autoRotate)};
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>focus(b.dataset.view));
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();let down=null;
+renderer.domElement.addEventListener('pointerdown',e=>down={x:e.clientX,y:e.clientY});
+renderer.domElement.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down.x,e.clientY-down.y)>5)return;const r=renderer.domElement.getBoundingClientRect();mouse.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);ray.setFromCamera(mouse,camera);const hit=ray.intersectObjects([popG,priG,secG,anaG],true)[0];if(hit){let o=hit.object;while(o&&!o.userData.key)o=o.parent;if(o)focus(o.userData.key)}});
+function pct(el,v,min,max){el.style.setProperty('--p',((v-min)/(max-min))*100+'%')}
+function sim(){
+const n=+$('#rn').value,q=+$('#rq').value;nB=n;nQ=q;
+$('#on').textContent=n+' คน';$('#oq').textContent=q+'%';
+pct($('#rn'),n,10,300);pct($('#rq'),q,10,100);
+const pS=Math.round(60+38*(1-Math.exp(-n/80))),sS=Math.round(q*.9);
+$('#pt').textContent=Math.max(1,Math.ceil(n/20))+' วัน';
+$('#pc').textContent=(n*45).toLocaleString('th-TH')+' บาท';
+$('#pe').textContent='±'+(98/Math.sqrt(n)).toFixed(1)+'%';
+$('#st').textContent=q>=60?'ไม่เกิน 1 วัน':'2–3 วัน';
+$('#sc').textContent='0–500 บาท';
+$('#se').textContent=q+'%';
+$('#ps').textContent=pS;$('#ss').textContent=sS;
+$('#pm').style.width=pS+'%';$('#sm').style.width=sS+'%';
+let t;
+if(pS>sS+5)t='ข้อมูลปฐมภูมิตอบโจทย์ตรงกว่าในตอนนี้ แต่ต้องใช้เวลาราว '+$('#pt').textContent+' และงบประมาณ '+$('#pc').textContent;
+else if(sS>pS+5)t='ข้อมูลทุติยภูมิคุ้มค่ากว่าในตอนนี้ เพราะประหยัดเวลาและงบประมาณ และแหล่งข้อมูลมีคุณภาพ '+q+'%';
+else t='สองแบบให้คะแนนใกล้เคียงกัน ควรตัดสินใจจากเวลา งบประมาณ และความตรงเป้าหมายของโจทย์';
+if(n<40)t+=' · กลุ่มตัวอย่างน้อยเกินไป ความคลาดเคลื่อนจึงสูง';
+if(q<40)t+=' · แหล่งข้อมูลคุณภาพต่ำ ควรตรวจสอบความน่าเชื่อถือก่อนใช้';
+$('#ins').textContent=t;
+setSample(n);
+cntB=Math.min(MAXB,Math.max(2,Math.ceil(n/22)));
+cntS=Math.round(q/100*MAXB);
+bgeo.setDrawRange(0,cntB*2);
+const lit=Math.round(q/100*NS);
+rings.forEach((m,i)=>m.userData.on=i<lit);
+tgtP=Math.max(.05,pS/100*2.6);tgtS=Math.max(.05,sS/100*2.6)}
+$('#rn').oninput=sim;$('#rq').oninput=sim;
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.pane').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#'+b.dataset.t).classList.add('on')});
+const QZ=[
+{q:'สถานการณ์ใดต่อไปนี้เป็นการจัดเก็บ “ข้อมูลปฐมภูมิ” (Primary Data) ?',o:['นกอ่านสถิติประชากรจากเว็บไซต์ของสำนักงานสถิติแห่งชาติ','ต้นออกแบบและแจกแบบสอบถามออนไลน์เพื่อสอบถามความพึงพอใจของเพื่อน ม.5 ในโรงเรียน','ปลานำข้อมูลยอดขายย้อนหลัง 5 ปีจากแผนกบัญชีของบริษัทมาวิเคราะห์','กานต์ดาวน์โหลดรายงานผลกระทบสิ่งแวดล้อมจากกรมควบคุมมลพิษมาใช้อ้างอิง'],a:1,e:'ต้นเก็บข้อมูลจากกลุ่มตัวอย่างโดยตรงด้วยแบบสอบถามที่ออกแบบเอง จึงเป็นข้อมูลปฐมภูมิ ส่วนตัวเลือกอื่นนำข้อมูลที่ผู้อื่นเก็บไว้แล้วมาใช้'},
+{q:'ข้อใดกล่าวถึง “ข้อมูลทุติยภูมิ” (Secondary Data) ได้ถูกต้องที่สุด?',o:['เป็นข้อมูลที่ผู้ใช้ต้องลงพื้นที่สัมภาษณ์ผู้ให้ข้อมูลด้วยตนเองเสมอ','ช่วยประหยัดเวลาและค่าใช้จ่ายเพราะมีผู้รวบรวมไว้แล้ว แต่ต้องระวังเรื่องความถูกต้องและความทันสมัย','เป็นข้อมูลที่ตรงตามวัตถุประสงค์เฉพาะของการวิจัยเรา 100% เสมอ','ข้อมูลจากการทดลองในห้องปฏิบัติการจัดเป็นข้อมูลทุติยภูมิ'],a:1,e:'ข้อมูลทุติยภูมิประหยัดทรัพยากร แต่อาจไม่ตรงเป้าหมายหรือไม่ทันสมัย ส่วนการทดลองในห้องแล็บเป็นข้อมูลปฐมภูมิ'},
+{q:'สถานการณ์ประยุกต์: นักเรียนต้องการศึกษา “แนวโน้มอุณหภูมิเฉลี่ยในประเทศไทยย้อนหลัง 30 ปี” ควรเลือกใช้ข้อมูลชนิดใดจึงเหมาะสมที่สุด?',o:['ปฐมภูมิ โดยซื้อเทอร์โมมิเตอร์ไปติดตั้งและจดบันทึกเองเป็นเวลา 30 ปี','ปฐมภูมิ โดยเดินสัมภาษณ์ผู้สูงอายุเกี่ยวกับสภาพอากาศในอดีต','ทุติยภูมิ โดยขอสถิติอุณหภูมิย้อนหลังจากกรมอุตุนิยมวิทยา','ปฐมภูมิ โดยสุ่มวัดอุณหภูมิบรรยากาศรอบๆ โรงเรียน'],a:2,e:'ข้อมูลย้อนหลัง 30 ปีเก็บเองไม่ได้ในเวลาจำกัด การใช้สถิติจากกรมอุตุนิยมวิทยาซึ่งเป็นข้อมูลทุติยภูมิจึงเหมาะสมและน่าเชื่อถือที่สุด'}
+];
+const L=['ก','ข','ค','ง'];
+let sel=[-1,-1,-1],done=false;
+function drawQuiz(){
+$('#qs').innerHTML=QZ.map((z,i)=>'<div class="q"><p>'+(i+1)+'. '+z.q+'</p>'+z.o.map((t,j)=>{let c='opt';if(done){if(j===z.a)c+=' ok';else if(sel[i]===j)c+=' bad'}else if(sel[i]===j)c+=' sel';return '<button class="'+c+'" data-q="'+i+'" data-o="'+j+'">'+L[j]+'. '+t+'</button>'}).join('')+'<div class="ex'+(done?' on':'')+'">'+z.e+'</div></div>').join('');
+document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{if(done)return;sel[+b.dataset.q]=+b.dataset.o;drawQuiz()});
+$('#sc2').textContent='คะแนนที่ได้: '+(done?QZ.filter((z,i)=>sel[i]===z.a).length:0)+' / 3'}
+$('#qc').onclick=()=>{if(sel.includes(-1)){$('#sc2').textContent='กรุณาตอบให้ครบทุกข้อ';return}done=true;drawQuiz()};
+$('#qr').onclick=()=>{sel=[-1,-1,-1];done=false;drawQuiz()};
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix()}
+new ResizeObserver(resize).observe(stage);
+const clock=new THREE.Clock(),tmp=new V3();
+function loop(){
+requestAnimationFrame(loop);
+const t=clock.getElapsedTime();
+if(tw){camera.position.lerp(tw.p,.07);controls.target.lerp(tw.t,.07);if(camera.position.distanceTo(tw.p)<.06&&controls.target.distanceTo(tw.t)<.06)tw=null}
+controls.update();
+priRing.scale.setScalar(1+Math.sin(t*2)*.04);
+gem.rotation.y=t;gem.position.y=4.7+Math.sin(t*1.6)*.15;
+rings.forEach((m,i)=>{m.emissiveIntensity=m.userData.on?.7+Math.sin(t*3+i)*.3:0});
+for(let i=0;i<MAXB;i++){
+const a=pk[i];a.visible=i<cntB;
+if(a.visible){const u=(t*.35+i*.17)%1,s=popPos[i].clone().add(popG.position);a.position.lerpVectors(s,R,u)}
+const b=sk[i];b.visible=i<cntS;
+if(b.visible){const u=(t*.28+i/MAXB)%1;cvS.getPoint(u,tmp);b.position.copy(tmp);b.rotation.set(t*2,t*2,0)}}
+barP.scale.y+=(tgtP-barP.scale.y)*.08;barS.scale.y+=(tgtS-barS.scale.y)*.08;
+barP.position.y=.9+barP.scale.y/2;barS.position.y=.9+barS.scale.y/2;
+const w=stage.clientWidth,h=stage.clientHeight;
+Object.keys(HSP).forEach(k=>{tmp.copy(HSP[k].v).project(camera);const e=hsEls[k];e.style.transform='translate('+((tmp.x*.5+.5)*w)+'px,'+((-tmp.y*.5+.5)*h)+'px) translate(-50%,-100%)';e.style.opacity=tmp.z<1?1:0;e.style.pointerEvents=tmp.z<1?'auto':'none'});
+renderer.render(scene,camera)}
+resize();sim();drawQuiz();loop();
+</script>
+</body>
+</html>
